@@ -8,7 +8,8 @@ public class ProductController {
 
 	@GetMapping("/product")
 	public String product() {
-		return "Product Service";
+		System.out.println("Coming product...");
+		return "Product Service called by Load balanced with circuit breaker.......";
 	}
 }
 
