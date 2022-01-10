@@ -1,1 +1,140 @@
-This is my microservice test file.
+	This is my microservice test file.
+
+Port Already inuse issue:
+=========================
+netstat -ano -p tcp | find "\8081"
+taskkill /F /PID 8268
+
+
+Microservice steps:
+===================
+Configuring Euraka Server:
+==========================
+Step 1:
+ Create multiple microservices springboot project(Consider as Client)
+
+Step 2:
+ create one Eureka microservices springboot project(Consider as Server)
+
+Step 3:
+ Need to add @EnableEurekaServer in server project(Consider as ServiceDiscoveryApplication ) main class
+
+Examples:
+@SpringBootApplication
+@EnableEurekaServer
+public class ServiceDiscoveryApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(ServiceDiscoveryApplication.class, args);
+	}
+
+}
+
+Step 4:
+ Need to add below commands in ServiceDiscoveryApplication application properties file
+server.port = 8761
+eureka.client.register-with-eureka = false
+eureka.client.fetch-registry = false
+
+
+Step 5:
+ Need to add @EnableEurekaServer annotation in client microservice project main class(Ex: HomeMicroservice1Application)
+@SpringBootApplication
+@EnableEurekaServer
+public class HomeMicroservice1Application {
+
+	public static void main(String[] args) {
+		SpringApplication.run(HomeMicroservice1Application.class, args);
+	}
+}
+
+Step 6:
+ Need to create RestTemplate bean, So we need to create one class and give below. 
+@LoadBalanced Annotation used to connect one microservice to another microservice.
+
+@Configuration
+public class SpringConfig {
+
+	@Bean
+	@LoadBalanced
+	public RestTemplate getTemplate() {
+		RestTemplate template = new RestTemplate();
+		return template;
+	}
+} 
+
+Step 7:
+ Need to add below commands in HomeMicroservice1Application) application properties file
+server.port = 8081
+spring.application.name=Home-microservice
+
+Step 8:
+ Need to add @EnableEurekaServer annotation in client microservice project main class(Ex: Product1MicroserviceApplication)
+@SpringBootApplication
+@EnableEurekaServer
+public class Product1MicroserviceApplication {
+	public static void main(String[] args) {
+		SpringApplication.run(Product1MicroserviceApplication.class, args);
+	}
+
+}
+
+Step 9:
+ Need to add below commands in Product1MicroserviceApplication) application properties file
+server.port = 8082
+spring.application.name=Product-microservice
+
+
+Step 10:
+ Need to call other microservice rest method in HomeMicroservice1Application HomeController
+@GetMapping("/home")
+public String home() {
+//return "Home Controller";
+//String product = restTemplate.getForObject("http://localhost:8082/product", String.class);
+String product = restTemplate.getForObject("http://PRODUCT-MICROSERVICE/product", String.class);
+return product;
+}
+
+
+Configuring Circuit Breaker:
+============================
+Step 1:
+ Need to add a Dependency - pom.xml
+
+<!-- https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-starter-netflix-hystrix -->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-netflix-hystrix</artifactId>
+    <version>2.2.8.RELEASE</version>
+</dependency>
+
+
+Step 2: 
+Need to add a Annotation - Main microservice class
+@EnableCircuitBreaker
+
+Step 3: 
+Need to find critical section(Endpoint or Method) -  Controller(Ex : HomeController)
+@GetMapping("/home")
+public String home()
+{
+String product = restTemplate.getForObject("http://PRODUCT-MICROSERVICE/product", String.class);
+return product;
+}
+
+Step 4:
+ Add then add a hystric command like below
+@HystrixCommand(fallbackMethod="handleProductServiceDown")
+
+@GetMapping("/home")
+@HystrixCommand(fallbackMethod="handleProductServiceDown")
+public String home()
+{
+}
+
+Step 5:
+ create a method as "handleProductServiceDown"
+public string handleProductServiceDown() {
+return "called as fallbackmethod";
+}
+
